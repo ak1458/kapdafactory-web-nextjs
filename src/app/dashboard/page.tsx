@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import ProtectedLayout from '@/src/components/ProtectedLayout';
 import OrderList from '@/src/ui-pages/OrderList';
-import { getOrders } from '@/src/server/orders';
+import { getCachedOrders } from '@/src/server/orders';
 import { getCurrentUser } from '@/src/server/auth';
 
 export default async function DashboardPage(props: { searchParams: Promise<any> }) {
@@ -11,7 +11,7 @@ export default async function DashboardPage(props: { searchParams: Promise<any> 
     }
 
     const searchParams = await props.searchParams;
-    const data = await getOrders(searchParams);
+    const data = await getCachedOrders(searchParams);
 
     return (
         <ProtectedLayout>

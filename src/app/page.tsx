@@ -1,13 +1,5 @@
-'use client';
-
-import ProtectedLayout from '@/src/components/ProtectedLayout';
-import CreateOrder from '@/src/ui-pages/CreateOrder';
+import { redirect } from 'next/navigation';
 
 export default function HomePage() {
-    return (
-        <ProtectedLayout>
-            <CreateOrder />
-        </ProtectedLayout>
-    );
+    redirect('/dashboard');
 }
-

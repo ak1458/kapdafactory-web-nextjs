@@ -1,68 +1,47 @@
-# dependencies
-/node_modules
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
-.yarn/install-state.gz
 
-# testing
-/coverage
-
-# next.js
+# Next.js build
 /.next/
 /out/
-
-# production
 /build
 
-# misc
-.DS_Store
-*.pem
-Thumbs.db
+# Testing
+/coverage
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.run-dev-out.log
-
-# local env files
+# Environment variables (NEVER commit these)
 .env
 .env*.local
 
-# vercel
-.vercel
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+*.log
 
-# typescript
+# Misc
+.DS_Store
+Thumbs.db
+*.pem
+
+# TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
 # IDE
 .idea/
 .vscode/
 *.swp
-*.swo
 
-# debug scripts
-debug-*.mjs
+# Vercel
+.vercel
 
-# large files & backups
-*.zip
-*.sql
-*.rar
-*.tar.gz
-
-# user uploads
+# Local uploads (generated at runtime)
 /public/storage
 /storage
 
-# agent files
-.agent/
-.gemini/
-*.webp
-*.png
-*.jpg
-*.jpeg
+# Reports
+/reports
 
-# reports
-/reports/artifacts/
+# Archives (documentation, old files)
+/_archive

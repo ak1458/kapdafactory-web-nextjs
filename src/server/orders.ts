@@ -1,4 +1,5 @@
 import { OrderStatus, Prisma } from '@prisma/client';
+import { unstable_cache } from 'next/cache';
 import { toDateOnly, toIso, parseDateValue } from '@/src/server/dates';
 import { getLegacyImageMap, shouldUseLegacyImageFallback } from '@/src/server/legacy-images';
 import { prisma } from '@/src/server/prisma';
@@ -155,10 +156,10 @@ export async function getOrders(params: GetOrdersParams) {
     const hasMore = fetchedOrders.length > perPage;
     const orders = hasMore ? fetchedOrders.slice(0, perPage) : fetchedOrders;
 
-    const orderIds = orders.map((order) => order.id);
+    const orderIds = orders.map((order: typeof orders[0]) => order.id);
     const missingImageOrderIds = orders
-        .filter((order) => order.images.length === 0 && shouldUseLegacyImageFallback(order.id))
-        .map((order) => order.id);
+        .filter((order: typeof orders[0]) => order.images.length === 0 && shouldUseLegacyImageFallback(order.id))
+        .map((order: typeof orders[0]) => order.id);
 
     const [paymentTotals, legacyImagesByOrderId] = await Promise.all([
         orderIds.length
@@ -177,11 +178,11 @@ export async function getOrders(params: GetOrdersParams) {
         missingImageOrderIds.length ? getLegacyImageMap(missingImageOrderIds, 1) : Promise.resolve(new Map()),
     ]);
 
-    const paidByOrderId = new Map(paymentTotals.map((item) => [item.orderId, Number(item._sum.amount || 0)]));
+    const paidByOrderId = new Map(paymentTotals.map((item: typeof paymentTotals[0]) => [item.orderId, Number(item._sum.amount || 0)]));
 
-    const serializedOrders = orders.map((order) => {
+    const serializedOrders = orders.map((order: typeof orders[0]) => {
         const totalAmount = Number(order.totalAmount);
-        const paidAmount = paidByOrderId.get(order.id) || 0;
+        const paidAmount = Number(paidByOrderId.get(order.id) || 0);
         const dbImages = order.images.map(serializeImage);
         const fallbackImages = legacyImagesByOrderId.get(order.id) || [];
 
@@ -244,7 +245,7 @@ export async function getOrders(params: GetOrdersParams) {
 
         const [totalCollectionResult, totalPendingResult] = totalsByStatus;
 
-        const statsOrderIds = statsOrders.map((order) => order.id);
+        const statsOrderIds = statsOrders.map((order: typeof statsOrders[0]) => order.id);
         const statsPayments = statsOrderIds.length
             ? await prisma.payment.groupBy({
                 by: ['orderId'],
@@ -253,16 +254,16 @@ export async function getOrders(params: GetOrdersParams) {
             })
             : [];
 
-        const paidByStatsOrderId = new Map(statsPayments.map((item) => [item.orderId, Number(item._sum.amount || 0)]));
+        const paidByStatsOrderId = new Map(statsPayments.map((item: typeof statsPayments[0]) => [item.orderId, Number(item._sum.amount || 0)]));
 
-        const duesCleared = statsOrders.reduce((count, order) => {
-            const paid = paidByStatsOrderId.get(order.id) || 0;
+        const duesCleared = statsOrders.reduce((count: number, order: typeof statsOrders[0]) => {
+            const paid = Number(paidByStatsOrderId.get(order.id) || 0);
             const balance = Number(order.totalAmount) - paid;
             return balance <= 0 ? count + 1 : count;
         }, 0);
 
-        const partialPayments = statsOrders.reduce((count, order) => {
-            const paid = paidByStatsOrderId.get(order.id) || 0;
+        const partialPayments = statsOrders.reduce((count: number, order: typeof statsOrders[0]) => {
+            const paid = Number(paidByStatsOrderId.get(order.id) || 0);
             const balance = Number(order.totalAmount) - paid;
             return paid > 0 && balance > 0 ? count + 1 : count;
         }, 0);
@@ -277,3 +278,13 @@ export async function getOrders(params: GetOrdersParams) {
 
     return response;
 }
+
+// Cached version of getOrders for better performance
+export const getCachedOrders = unstable_cache(
+    async (params: GetOrdersParams) => getOrders(params),
+    ['orders-list'],
+    {
+        revalidate: 30, // Cache for 30 seconds
+        tags: ['orders'],
+    }
+);

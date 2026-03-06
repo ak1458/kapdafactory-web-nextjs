@@ -1,7 +1,8 @@
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/src/server/auth';
 import { parseDateValue } from '@/src/server/dates';
-import { getSerializedOrderDetail } from '@/src/server/order-detail';
+import { getSerializedOrderDetail, invalidateOrderCache } from '@/src/server/order-detail';
 import { prisma } from '@/src/server/prisma';
 import { getRouteParams, getSingleParam } from '@/src/server/route-params';
 import { parseOrderStatus, parsePaymentMethod, parsePositiveInt } from '@/src/server/validators';
@@ -51,7 +52,7 @@ export async function PUT(request: NextRequest, context: any) {
         return NextResponse.json({ message: 'Order not found.' }, { status: 404 });
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         await tx.order.update({
             where: { id },
             data: {
@@ -106,6 +107,7 @@ export async function PUT(request: NextRequest, context: any) {
         });
     });
 
+    invalidateOrderCache(id);
     const updatedOrder = await getSerializedOrderDetail(id);
     if (!updatedOrder) {
         return NextResponse.json({ message: 'Order not found.' }, { status: 404 });

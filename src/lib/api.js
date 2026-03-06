@@ -1,10 +1,11 @@
 'use client';
 
 import axios from 'axios';
+import { getCsrfToken } from './csrf-client';
 
 const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
-    timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 20000),
+    timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 15000), // Reduced from 20s
     timeoutErrorMessage: 'Request timed out. Please try again.',
     headers: {
         'Content-Type': 'application/json',
@@ -13,28 +14,53 @@ const api = axios.create({
     withCredentials: true,
 });
 
-
+// Request interceptor with CSRF protection
 api.interceptors.request.use((config) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add CSRF token for mutating requests
+    if (config.method && ['post', 'put', 'delete', 'patch'].includes(config.method.toLowerCase())) {
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+            config.headers['X-CSRF-Token'] = csrfToken;
+        }
+    }
+    
     return config;
 });
 
+// Response interceptor for auth and error handling
 api.interceptors.response.use(
     (response) => response,
     (error) => {
+        // Handle 401 - Unauthorized
         if (error.response?.status === 401) {
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
-                // Optional: Redirect to login if not already there
                 if (!window.location.pathname.includes('/login')) {
                     window.location.href = '/login';
                 }
             }
         }
+        
+        // Handle 429 - Rate Limited
+        if (error.response?.status === 429) {
+            const retryAfter = error.response.headers['retry-after'] || 60;
+            error.message = `Too many requests. Please try again in ${retryAfter} seconds.`;
+        }
+        
+        // Handle 403 - CSRF Error
+        if (error.response?.status === 403 && error.response.data?.message?.includes('CSRF')) {
+            // Refresh the page to get new CSRF token
+            if (typeof window !== 'undefined') {
+                window.location.reload();
+            }
+        }
+        
         return Promise.reject(error);
     }
 );
@@ -115,5 +141,14 @@ export const getStorageCandidates = (image) => {
 
 // Helper to get proper storage URL for images
 export const getStorageUrl = (image) => getStorageCandidates(image)[0] || null;
+
+// Prefetch API data for faster navigation
+export const prefetchOrderData = async (orderId) => {
+    try {
+        await api.get(`/orders/${orderId}?lite=1`);
+    } catch {
+        // Silently fail prefetch
+    }
+};
 
 export default api;

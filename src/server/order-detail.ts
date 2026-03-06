@@ -46,8 +46,50 @@ function clampWithTruncation<T>(items: T[], limit: number) {
     };
 }
 
+// Simple in-memory cache for order details (TTL: 5 seconds)
+const orderCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL_MS = 5000;
+
+function getCacheKey(orderId: number, mode: OrderDetailMode): string {
+    return `${orderId}:${mode}`;
+}
+
+function getCachedOrder(orderId: number, mode: OrderDetailMode): any | null {
+    const key = getCacheKey(orderId, mode);
+    const cached = orderCache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return cached.data;
+    }
+    if (cached) {
+        orderCache.delete(key);
+    }
+    return null;
+}
+
+function setCachedOrder(orderId: number, mode: OrderDetailMode, data: any): void {
+    const key = getCacheKey(orderId, mode);
+    orderCache.set(key, { data, timestamp: Date.now() });
+    
+    // Cleanup old cache entries
+    if (orderCache.size > 1000) {
+        const now = Date.now();
+        for (const [k, v] of orderCache.entries()) {
+            if (now - v.timestamp > CACHE_TTL_MS) {
+                orderCache.delete(k);
+            }
+        }
+    }
+}
+
 export async function getSerializedOrderDetail(orderId: number, options: OrderDetailOptions = {}) {
     const mode: OrderDetailMode = options.mode === 'lite' ? 'lite' : 'full';
+    
+    // Check cache first
+    const cached = getCachedOrder(orderId, mode);
+    if (cached) {
+        return cached;
+    }
+    
     const order = await prisma.order.findUnique({
         where: { id: orderId },
         select: {
@@ -124,6 +166,8 @@ export async function getSerializedOrderDetail(orderId: number, options: OrderDe
             serialized.images = await getLegacyImagesForOrder(order.id, 1);
         }
 
+        // Cache the result
+        setCachedOrder(orderId, mode, serialized);
         return serialized;
     }
 
@@ -215,5 +259,13 @@ export async function getSerializedOrderDetail(orderId: number, options: OrderDe
         serialized.images = await getLegacyImagesForOrder(order.id, Math.min(8, ORDER_DETAIL_IMAGES_LIMIT));
     }
 
+    // Cache the result
+    setCachedOrder(orderId, mode, serialized);
     return serialized;
+}
+
+// Invalidate cache for an order
+export function invalidateOrderCache(orderId: number): void {
+    orderCache.delete(getCacheKey(orderId, 'lite'));
+    orderCache.delete(getCacheKey(orderId, 'full'));
 }

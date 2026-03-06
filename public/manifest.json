@@ -1,0 +1,17 @@
+{
+  "name": "KapdaFactory Admin",
+  "short_name": "KapdaFactory",
+  "description": "Order Management System for KapdaFactory",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ECE5DD",
+  "theme_color": "#075E54",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     for (const order of orders) {
         for (const payment of order.payments) {
-            const method = payment.paymentMethod || 'cash';
+            const method = (payment.paymentMethod || 'cash') as keyof typeof paymentMethodTotals;
             paymentMethodTotals[method] = (paymentMethodTotals[method] || 0) + Number(payment.amount);
         }
     }
@@ -109,10 +109,10 @@ export async function GET(request: NextRequest) {
             online: 0,
         };
 
-        const mappedOrders = dayOrders.map((order) => {
-            const paidAmount = order.payments.reduce((sum, payment) => {
+        const mappedOrders = dayOrders.map((order: typeof orders[0]) => {
+            const paidAmount = order.payments.reduce((sum: number, payment: typeof order.payments[0]) => {
                 const amount = Number(payment.amount);
-                const method = payment.paymentMethod || 'cash';
+                const method = (payment.paymentMethod || 'cash') as keyof typeof dayMethodTotals;
                 dayMethodTotals[method] += amount;
                 return sum + amount;
             }, 0);
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
             };
         });
 
-        const dayTotal = mappedOrders.reduce((sum, order) => sum + order.paid_amount, 0);
+        const dayTotal = mappedOrders.reduce((sum: number, order: typeof mappedOrders[0]) => sum + order.paid_amount, 0);
 
         return {
             date,

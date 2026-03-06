@@ -1,130 +1,167 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { useNavigate, Link } from '@/src/lib/router';
-import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/src/context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Login() {
+    const router = useRouter();
+    const { login, user, loading: authLoading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [errors, setErrors] = useState({});
 
-    const { login, token, loading: authLoading } = useAuth();
-    const navigate = useNavigate();
-
+    // Redirect if already logged in
     useEffect(() => {
-        if (!authLoading && token) {
-            navigate('/dashboard');
+        if (user && !authLoading) {
+            router.replace('/dashboard');
         }
-    }, [authLoading, token, navigate]);
+    }, [user, authLoading, router]);
 
-    const handleSubmit = async (e) => {
+    const validateForm = useCallback(() => {
+        const newErrors = {};
+        const trimmedEmail = email.trim().toLowerCase();
+
+        if (!trimmedEmail) {
+            newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+            newErrors.email = 'Please enter a valid email';
+        }
+
+        if (!password) {
+            newErrors.password = 'Password is required';
+        } else if (password.length < 5) {
+            newErrors.password = 'Password must be at least 5 characters';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    }, [email, password]);
+
+    const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
-        setError('');
-        setLoading(true);
 
-        const res = await login(email, password);
+        if (!validateForm()) return;
 
-        if (res.success) {
-            toast.success('Login successful!');
-            navigate('/dashboard');
-        } else {
-            setError(res.message);
-            setLoading(false);
+        setIsLoading(true);
+        const trimmedEmail = email.trim().toLowerCase();
+
+        try {
+            const result = await login(trimmedEmail, password);
+
+            if (result.success) {
+                toast.success('Login successful!');
+                router.replace('/dashboard');
+            } else {
+                toast.error(result.message || 'Login failed');
+                setErrors({ form: result.message || 'Invalid credentials' });
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            toast.error('An unexpected error occurred');
+            setErrors({ form: 'An unexpected error occurred' });
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }, [email, password, login, router, validateForm]);
+
+    const handleEmailChange = useCallback((e) => {
+        setEmail(e.target.value);
+        if (errors.email) {
+            setErrors(prev => ({ ...prev, email: undefined }));
+        }
+    }, [errors.email]);
+
+    const handlePasswordChange = useCallback((e) => {
+        setPassword(e.target.value);
+        if (errors.password) {
+            setErrors(prev => ({ ...prev, password: undefined }));
+        }
+    }, [errors.password]);
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-[#ECE5DD] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#075E54]"></div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-[#ECE5DD] flex flex-col items-center justify-center p-6 font-sans">
-            <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-gray-100/50 border border-gray-100 p-8 space-y-8">
-
-                {/* Logo & Header */}
-                <div className="text-center space-y-2">
-                    <div className="flex justify-center mb-6">
-                        <Image src="/logo.png" alt="KapdaFactory" width={140} height={64} unoptimized className="h-16 w-auto object-contain" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-[#075E54]">Welcome Back</h1>
-                    <p className="text-sm text-gray-500">Please sign in to your account</p>
+        <div className="min-h-screen bg-[#ECE5DD] flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div className="bg-[#075E54] p-6 text-white">
+                    <h1 className="text-2xl font-bold">Welcome Back</h1>
+                    <p className="text-sm opacity-80 mt-1">Sign in to manage your orders</p>
                 </div>
 
-                {/* Credential Hint */}
-                <div className="bg-blue-50 p-3 rounded-xl border border-blue-100 text-xs text-blue-800 text-center">
-                    <p><strong>Email:</strong> admin@admin.com</p>
-                    <p><strong>Pass:</strong> admin</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-4">
-                        {/* Email Input */}
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-[#25D366] transition-colors" />
-                                </div>
-                                <input
-                                    type="email"
-                                    required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="block w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#25D366]/20 focus:border-[#25D366] transition-all font-medium"
-                                    placeholder="name@company.com"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Password Input */}
-                        <div className="space-y-1.5">
-                            <div className="flex justify-between items-center ml-1">
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Password</label>
-                                <Link to="/forgot-password" className="text-xs font-bold text-[#075E54] hover:text-[#128C7E] hover:underline">
-                                    Forgot Password?
-                                </Link>
-                            </div>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#25D366] transition-colors" />
-                                </div>
-                                <input
-                                    type="password"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="block w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#25D366]/20 focus:border-[#25D366] transition-all font-medium"
-                                    placeholder="********"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Error Message */}
-                    {error && (
-                        <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium text-center animate-pulse">
-                            {error}
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {errors.form && (
+                        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+                            {errors.form}
                         </div>
                     )}
 
-                    {/* Submit Button */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Email Address
+                        </label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={handleEmailChange}
+                            className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#075E54] focus:border-transparent transition-all`}
+                            placeholder="admin@admin.com"
+                            autoComplete="email"
+                            disabled={isLoading}
+                        />
+                        {errors.email && (
+                            <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={handlePasswordChange}
+                            className={`w-full px-4 py-3 rounded-lg border ${errors.password ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#075E54] focus:border-transparent transition-all`}
+                            placeholder="••••••••"
+                            autoComplete="current-password"
+                            disabled={isLoading}
+                        />
+                        {errors.password && (
+                            <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                        )}
+                    </div>
+
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="w-full flex items-center justify-center gap-2 py-4 px-6 bg-[#25D366] hover:bg-[#128C7E] text-white text-lg font-bold rounded-2xl shadow-lg shadow-green-500/20 transform transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                        disabled={isLoading}
+                        className="w-full bg-[#075E54] hover:bg-[#128C7E] text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        {loading ? 'Signing in...' : 'Sign In'}
-                        {!loading && <ArrowRight size={20} />}
+                        {isLoading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                Signing in...
+                            </>
+                        ) : (
+                            'Sign In'
+                        )}
                     </button>
+
+                    <div className="text-center text-sm text-gray-500 mt-4">
+                        <a href="/forgot-password" className="text-[#075E54] hover:underline">
+                            Forgot your password?
+                        </a>
+                    </div>
                 </form>
             </div>
-
-            <p className="mt-8 text-center text-xs text-gray-400">
-                &copy; 2025 KapdaFactory developed by SmileFotilo
-            </p>
         </div>
     );
 }
-
-

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/src/server/auth';
 import { parseDateValue } from '@/src/server/dates';
-import { getSerializedOrderDetail } from '@/src/server/order-detail';
+import { getSerializedOrderDetail, invalidateOrderCache } from '@/src/server/order-detail';
 import { prisma } from '@/src/server/prisma';
 import { getRouteParams, getSingleParam } from '@/src/server/route-params';
 import { parsePaymentMethod, parsePositiveInt } from '@/src/server/validators';
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest, context: any) {
         },
     });
 
+    invalidateOrderCache(id);
     const updatedOrder = await getSerializedOrderDetail(id);
     if (!updatedOrder) {
         return NextResponse.json({ message: 'Order not found.' }, { status: 404 });

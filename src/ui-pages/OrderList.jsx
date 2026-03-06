@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useCallback, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import api from '../lib/api';
@@ -8,9 +8,9 @@ import FilterChips from '../components/FilterChips';
 import OrderCard from '../components/OrderCard';
 import CustomDatePicker from '../components/CustomDatePicker';
 import ExportModal from '../components/ExportModal';
-import { AlertCircle, Inbox, Calendar, LogOut, Search, X, Download } from 'lucide-react';
+import { Inbox, Calendar, LogOut, Search, X, Download } from 'lucide-react';
 
-const SEARCH_DEBOUNCE_MS = 350;
+const SEARCH_DEBOUNCE_MS = 300; // Reduced for faster response
 
 export default function OrderList({ initialData }) {
     const router = useRouter();
@@ -21,28 +21,26 @@ export default function OrderList({ initialData }) {
     // Local state for immediate UI feedback on search input
     const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
     const [showExportModal, setShowExportModal] = useState(false);
+    const searchInputRef = useRef(searchInput);
+    const searchParamsRef = useRef(searchParams);
+    
+    // Keep refs in sync
+    useEffect(() => {
+        searchInputRef.current = searchInput;
+        searchParamsRef.current = searchParams;
+    }, [searchInput, searchParams]);
 
     // Sync local search input with URL param if it changes externally
     useEffect(() => {
-        setSearchInput(searchParams.get('search') || '');
-    }, [searchParams]);
+        const currentSearch = searchParams.get('search') || '';
+        if (currentSearch !== searchInput) {
+            setSearchInput(currentSearch);
+        }
+    }, [searchParams, searchInput]);
 
-    // Debounce search updates to URL
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const currentSearch = searchParams.get('search') || '';
-            const newSearch = searchInput.trim();
-
-            if (currentSearch !== newSearch) {
-                updateUrl({ search: newSearch });
-            }
-        }, SEARCH_DEBOUNCE_MS);
-
-        return () => clearTimeout(timer);
-    }, [searchInput]);
-
-    const updateUrl = (updates) => {
-        const params = new URLSearchParams(searchParams.toString());
+    // Memoized updateUrl function to prevent recreation
+    const updateUrl = useCallback((updates) => {
+        const params = new URLSearchParams(searchParamsRef.current.toString());
 
         Object.entries(updates).forEach(([key, value]) => {
             if (value === null || value === undefined || value === '') {
@@ -60,9 +58,23 @@ export default function OrderList({ initialData }) {
         startTransition(() => {
             router.push(`${pathname}?${params.toString()}`);
         });
-    };
+    }, [pathname, router]);
 
-    const logout = async () => {
+    // Debounce search updates to URL
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const currentSearch = searchParamsRef.current.get('search') || '';
+            const newSearch = searchInputRef.current.trim();
+
+            if (currentSearch !== newSearch) {
+                updateUrl({ search: newSearch });
+            }
+        }, SEARCH_DEBOUNCE_MS);
+
+        return () => clearTimeout(timer);
+    }, [searchInput, updateUrl]);
+
+    const logout = useCallback(async () => {
         try {
             await api.post('/logout');
         } catch {
@@ -72,17 +84,17 @@ export default function OrderList({ initialData }) {
             localStorage.removeItem('user');
             router.push('/login');
         }
-    };
+    }, [router]);
 
-    const orders = initialData?.data || [];
-    const responseData = initialData || {};
-
-    // Status, Date, Sort come from URL now
+    // Memoized values for performance
+    const orders = useMemo(() => initialData?.data || [], [initialData?.data]);
+    const responseData = useMemo(() => initialData || {}, [initialData]);
+    
     const status = searchParams.get('status') || 'all';
     const dateFilter = searchParams.get('date') || searchParams.get('date_from') || '';
     const sortOrder = searchParams.get('sort_order') || 'desc';
 
-    const formatDateSafe = (dateString) => {
+    const formatDateSafe = useCallback((dateString) => {
         try {
             if (!dateString) return 'Select Date';
             const date = new Date(dateString);
@@ -91,9 +103,25 @@ export default function OrderList({ initialData }) {
         } catch {
             return 'Invalid Date';
         }
-    };
+    }, []);
 
-    const renderDailySummary = () => {
+    const handleDateChange = useCallback((date) => {
+        updateUrl({ date: date, date_from: date, date_to: date });
+    }, [updateUrl]);
+
+    const handleClearDate = useCallback(() => {
+        updateUrl({ date: null, date_from: null, date_to: null });
+    }, [updateUrl]);
+
+    const handleSortToggle = useCallback(() => {
+        updateUrl({ sort_order: sortOrder === 'desc' ? 'asc' : 'desc' });
+    }, [sortOrder, updateUrl]);
+
+    const handleStatusChange = useCallback((val) => {
+        updateUrl({ status: val });
+    }, [updateUrl]);
+
+    const renderDailySummary = useMemo(() => {
         if (!dateFilter || !orders.length) return null;
 
         return (
@@ -141,7 +169,7 @@ export default function OrderList({ initialData }) {
                 </div>
             </div>
         );
-    };
+    }, [dateFilter, orders.length, responseData, formatDateSafe]);
 
     return (
         <div className="flex-1 flex flex-col bg-[#ECE5DD] font-sans h-full">
@@ -155,6 +183,7 @@ export default function OrderList({ initialData }) {
                             height={32}
                             unoptimized
                             className="h-8 w-auto object-contain"
+                            priority
                         />
                         <div>
                             <h1 className="text-lg font-bold">Search Orders</h1>
@@ -196,7 +225,7 @@ export default function OrderList({ initialData }) {
                     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                         <FilterChips
                             status={status}
-                            onChange={(val) => updateUrl({ status: val })}
+                            onChange={handleStatusChange}
                             options={[
                                 { value: 'all', label: 'All' },
                                 { value: 'pending', label: 'Pending' },
@@ -216,14 +245,14 @@ export default function OrderList({ initialData }) {
                                     </label>
                                     <CustomDatePicker
                                         selected={dateFilter}
-                                        onChange={(date) => updateUrl({ date: date, date_from: date, date_to: date })}
+                                        onChange={handleDateChange}
                                         placeholder="Select Date"
                                         className="text-sm font-bold text-gray-800"
                                     />
                                 </div>
                                 {dateFilter && (
                                     <button
-                                        onClick={() => updateUrl({ date: null, date_from: null, date_to: null })}
+                                        onClick={handleClearDate}
                                         className="flex-none p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
                                         title="Clear Date"
                                     >
@@ -234,7 +263,7 @@ export default function OrderList({ initialData }) {
                         </div>
 
                         <button
-                            onClick={() => updateUrl({ sort_order: sortOrder === 'desc' ? 'asc' : 'desc' })}
+                            onClick={handleSortToggle}
                             className="flex-none bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl px-4 py-3 border border-gray-200 shadow-sm hover:shadow-md transition-all group"
                         >
                             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Sort Order</div>
@@ -246,7 +275,7 @@ export default function OrderList({ initialData }) {
                     </div>
                 </div>
 
-                {renderDailySummary()}
+                {renderDailySummary}
 
                 {isPending && (
                     <div className="flex justify-center py-2 relative z-50">

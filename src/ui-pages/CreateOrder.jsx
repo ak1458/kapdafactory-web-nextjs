@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from '@/src/lib/router';
@@ -31,11 +31,13 @@ export default function CreateOrder() {
         token: '',
         bill_number: '',
         customer_name: '',
+        phone_number: '',
         entry_date: todayDate,  // When the entry is made (defaults to today)
         delivery_date: '',  // When order should be delivered
         remarks: '',
         total_amount: '',
     });
+    const [errors, setErrors] = useState({});
     const [images, setImages] = useState([]);
     const [previewUrls, setPreviewUrls] = useState([]);
     const fileInputRef = useRef(null);
@@ -159,20 +161,36 @@ export default function CreateOrder() {
     };
 
     const handleSubmit = async () => {
+        const newErrors = {};
         const orderNumber = String(formData.token || '').trim();
-        if (!orderNumber) return toast.error('Bill / Token number is required.');
-
         const totalAmountValue = Number(formData.total_amount);
-        if (!Number.isFinite(totalAmountValue) || totalAmountValue <= 0) {
-            return toast.error('Amount is required and must be greater than 0.');
+
+        if (!orderNumber) {
+            newErrors.token = 'Required';
         }
 
+        if (!Number.isFinite(totalAmountValue) || totalAmountValue <= 0) {
+            newErrors.amount = 'Invalid amount';
+        }
+
+        if (!formData.delivery_date) {
+            newErrors.delivery_date = 'Required';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            toast.error('Please correctly fill out all required fields.');
+            return;
+        }
+
+        setErrors({});
         setLoading(true);
 
         const data = new FormData();
         data.set('token', orderNumber);
         data.set('bill_number', orderNumber);
         data.set('customer_name', formData.customer_name || '');
+        data.set('phone_number', formData.phone_number || '');
         data.set('entry_date', formData.entry_date || '');
         data.set('delivery_date', formData.delivery_date || '');
         data.set('remarks', formData.remarks || '');
@@ -228,31 +246,37 @@ export default function CreateOrder() {
                 <div className="flex flex-col gap-2 sm:gap-3 mb-4">
                     {/* Row 1: Token & Amount - responsive height */}
                     <div className="flex gap-2 sm:gap-3 min-h-[60px] sm:min-h-[70px]">
-                        <div className="flex-1 glass-card rounded-xl p-2 sm:p-3 flex flex-col justify-center">
-                            <label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1">
+                        <div className={`flex-1 glass-card rounded-xl p-2 sm:p-3 flex flex-col justify-center border transition-colors ${errors.token ? 'border-red-400 bg-red-50/50' : 'border-transparent'}`}>
+                            <label className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1 ${errors.token ? 'text-red-500' : 'text-gray-400'}`}>
                                 <Hash size={10} className="sm:w-3 sm:h-3" /> Bill / Token *
                             </label>
                             <input
                                 type="text"
                                 placeholder="A-101"
                                 value={formData.token}
-                                onChange={(e) => setFormData({ ...formData, token: e.target.value })}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, token: e.target.value });
+                                    if (errors.token) setErrors({ ...errors, token: null });
+                                }}
                                 autoComplete="off"
-                                className="w-full text-base sm:text-lg font-bold text-gray-900 placeholder-gray-300 focus:outline-none bg-transparent"
+                                className={`w-full text-base sm:text-lg font-bold placeholder-gray-300 focus:outline-none bg-transparent ${errors.token ? 'text-red-600' : 'text-gray-900'}`}
                             />
                         </div>
-                        <div className="flex-1 glass-card rounded-xl p-2 sm:p-3 flex flex-col justify-center">
-                            <label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1">
+                        <div className={`flex-1 glass-card rounded-xl p-2 sm:p-3 flex flex-col justify-center border transition-colors ${errors.amount ? 'border-red-400 bg-red-50/50' : 'border-transparent'}`}>
+                            <label className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1 ${errors.amount ? 'text-red-500' : 'text-gray-400'}`}>
                                 <IndianRupee size={10} className="sm:w-3 sm:h-3" /> Amount *
                             </label>
                             <div className="flex items-center gap-1">
-                                <span className="text-gray-400 font-bold text-base sm:text-lg">₹</span>
+                                <span className={`font-bold text-base sm:text-lg ${errors.amount ? 'text-red-500' : 'text-gray-400'}`}>?</span>
                                 <input
                                     type="number"
                                     value={formData.total_amount || ''}
-                                    onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, total_amount: e.target.value });
+                                        if (errors.amount) setErrors({ ...errors, amount: null });
+                                    }}
                                     autoComplete="off"
-                                    className="w-full text-base sm:text-lg font-bold text-gray-900 placeholder-gray-300 focus:outline-none bg-transparent"
+                                    className={`w-full text-base sm:text-lg font-bold placeholder-gray-300 focus:outline-none bg-transparent ${errors.amount ? 'text-red-600' : 'text-gray-900'}`}
                                     placeholder="0"
                                 />
                             </div>
@@ -271,24 +295,27 @@ export default function CreateOrder() {
                                 placeholder="Today"
                             />
                         </div>
-                        <div className="flex-1 bg-white rounded-xl p-2 sm:p-3 shadow-sm border border-gray-100 flex flex-col justify-center">
-                            <label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1">
-                                <Calendar size={10} className="sm:w-3 sm:h-3" /> Delivery
+                        <div className={`flex-1 bg-white rounded-xl p-2 sm:p-3 shadow-sm border flex flex-col justify-center transition-colors ${errors.delivery_date ? 'border-red-400 bg-red-50/30' : 'border-gray-100'}`}>
+                            <label className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1 ${errors.delivery_date ? 'text-red-500' : 'text-gray-400'}`}>
+                                <Calendar size={10} className="sm:w-3 sm:h-3" /> Delivery *
                             </label>
                             <CustomDatePicker
                                 selected={formData.delivery_date}
-                                onChange={(date) => setFormData({ ...formData, delivery_date: date })}
+                                onChange={(date) => {
+                                    setFormData({ ...formData, delivery_date: date });
+                                    if (errors.delivery_date) setErrors({ ...errors, delivery_date: null });
+                                }}
                                 minDate={new Date()}
                                 placeholder="dd-mm-yyyy"
                             />
                         </div>
                     </div>
 
-                    {/* Row 3: Customer Name - Full Width */}
+                    {/* Row 3: Customer Name & Phone Number */}
                     <div className="flex gap-2 sm:gap-3 min-h-[60px] sm:min-h-[70px]">
-                        <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-xl p-2 sm:p-3 shadow-sm border border-white/50 flex flex-col justify-center">
+                        <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-xl p-2 sm:p-3 shadow-sm border border-white/50 flex flex-col justify-center min-h-[60px] sm:min-h-[70px]">
                             <label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1">
-                                <User size={10} className="sm:w-3 sm:h-3" /> Customer Name (Optional)
+                                <User size={10} className="sm:w-3 sm:h-3" /> Customer Name
                             </label>
                             <input
                                 type="text"
@@ -296,6 +323,19 @@ export default function CreateOrder() {
                                 value={formData.customer_name}
                                 onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
                                 className="w-full font-medium text-sm sm:text-base text-gray-900 placeholder-gray-300 focus:outline-none bg-transparent"
+                            />
+                        </div>
+                        <div className="flex-1 bg-white/80 backdrop-blur-sm rounded-xl p-2 sm:p-3 shadow-sm border border-white/50 flex flex-col justify-center min-h-[60px] sm:min-h-[70px]">
+                            <label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center gap-1">
+                                <span className="font-serif">??</span> Phone Number
+                            </label>
+                            <input
+                                type="tel"
+                                placeholder="10-digit number"
+                                value={formData.phone_number || ''}
+                                onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                                className="w-full font-medium text-sm sm:text-base text-gray-900 placeholder-gray-300 focus:outline-none bg-transparent"
+                                maxLength={10}
                             />
                         </div>
                     </div>

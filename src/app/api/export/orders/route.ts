@@ -135,13 +135,13 @@ export async function GET(request: NextRequest) {
     const rows: unknown[][] = [header];
 
     for (const order of orders) {
-        const paidAmount = order.payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+        const paidAmount = order.payments.reduce((sum: number, payment: typeof order.payments[0]) => sum + Number(payment.amount), 0);
         const totalAmount = Number(order.totalAmount);
         const balance = Math.max(0, totalAmount - paidAmount);
         const tokenDate = toDateOnly(order.createdAt) || '';
         const entryDate = toDateOnly(order.entryDate) || tokenDate;
 
-        const groupedPayments = order.payments.reduce<Record<string, number>>((acc, payment) => {
+        const groupedPayments = order.payments.reduce((acc: Record<string, number>, payment: typeof order.payments[0]) => {
             const method = payment.paymentMethod || 'cash';
             acc[method] = (acc[method] || 0) + Number(payment.amount);
             return acc;

@@ -11,15 +11,26 @@ function toNumber(value: unknown) {
 }
 
 export function serializeImage(image: any) {
+    // Handle both Vercel Blob URLs and local file paths
+    const filename = image.filename || '';
+    const isBlobUrl = filename.startsWith('http://') || filename.startsWith('https://');
+    
+    // For Vercel Blob, use the direct URL
+    // For local files, use the storage API
+    const url = isBlobUrl 
+        ? filename 
+        : `/api/storage/${filename.startsWith('/') ? filename.slice(1) : filename}`;
+    
     return {
         id: image.id,
         order_id: image.orderId,
-        filename: image.filename,
+        filename: filename,
         mime: image.mime,
         size: image.size,
         created_at: toIso(image.createdAt),
         updated_at: toIso(image.updatedAt),
-        url: image.filename.startsWith('http') ? image.filename : `/api/storage/${image.filename.startsWith('/') ? image.filename.slice(1) : image.filename}`,
+        url: url,
+        is_legacy: false,
     };
 }
 

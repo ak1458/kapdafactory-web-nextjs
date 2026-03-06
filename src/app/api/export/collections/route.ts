@@ -92,14 +92,14 @@ export async function GET(request: NextRequest) {
 
     for (const order of orders) {
         const cash = order.payments
-            .filter((payment) => payment.paymentMethod === 'cash')
-            .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            .filter((payment: typeof order.payments[0]) => payment.paymentMethod === 'cash')
+            .reduce((sum: number, payment: typeof order.payments[0]) => sum + Number(payment.amount), 0);
         const upi = order.payments
-            .filter((payment) => payment.paymentMethod === 'upi')
-            .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            .filter((payment: typeof order.payments[0]) => payment.paymentMethod === 'upi')
+            .reduce((sum: number, payment: typeof order.payments[0]) => sum + Number(payment.amount), 0);
         const online = order.payments
-            .filter((payment) => payment.paymentMethod === 'online')
-            .reduce((sum, payment) => sum + Number(payment.amount), 0);
+            .filter((payment: typeof order.payments[0]) => payment.paymentMethod === 'online')
+            .reduce((sum: number, payment: typeof order.payments[0]) => sum + Number(payment.amount), 0);
 
         const totalPaid = cash + upi + online;
         const totalAmount = Number(order.totalAmount);
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
         'Total',
         `${orders.length} orders`,
         '',
-        orders.reduce((sum, order) => sum + Number(order.totalAmount), 0),
+        orders.reduce((sum: number, order: typeof orders[0]) => sum + Number(order.totalAmount), 0),
         totalCash,
         totalUpi,
         totalOnline,

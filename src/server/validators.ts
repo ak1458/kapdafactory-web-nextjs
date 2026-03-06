@@ -36,3 +36,13 @@ export function parsePaymentMethod(value: unknown, fallback: PaymentMethod = 'ca
 
     return paymentMethods.has(value as PaymentMethod) ? (value as PaymentMethod) : fallback;
 }
+
+// Email validation helper
+export function isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// Normalize email to lowercase and trim
+export function normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+}

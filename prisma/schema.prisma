@@ -64,6 +64,7 @@ model Order {
   payments Payment[]
 
   @@index([deliveryDate, status])
+  @@index([status, createdAt(sort: Desc)])
   @@index([customerName])
   @@index([token])
   @@index([billNumber])
