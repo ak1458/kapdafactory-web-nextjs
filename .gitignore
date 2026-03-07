@@ -10,3 +10,4 @@ deploy-package.zip
 storage/*.key
 .idea/
 .vscode/
+.vercel
