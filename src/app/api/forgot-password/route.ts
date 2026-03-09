@@ -2,29 +2,8 @@ import { randomBytes } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/server/prisma';
 import { sendEmail } from '@/src/lib/email';
-import { createRateLimit, createRateLimitResponse } from '@/src/lib/rate-limit';
-import { csrfProtection } from '@/src/lib/csrf';
-
-// Rate limit: 3 attempts per hour per IP
-const forgotPasswordRateLimit = createRateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 3,
-    keyPrefix: 'forgot-password',
-});
 
 export async function POST(request: NextRequest) {
-    // Check rate limit
-    const rateLimitResult = await forgotPasswordRateLimit(request);
-    if (!rateLimitResult.success) {
-        return createRateLimitResponse(rateLimitResult.resetTime);
-    }
-
-    // Check CSRF token
-    const csrfResult = await csrfProtection(request);
-    if (!csrfResult.valid) {
-        return csrfResult.response!;
-    }
-
     const body = await request.json().catch(() => null);
     const email = body?.email?.trim?.()?.toLowerCase();
 
@@ -82,10 +61,10 @@ export async function POST(request: NextRequest) {
             message: 'If an account exists for this email, a reset link has been sent.',
             email_sent: true,
         });
-        
+
         response.headers.set('X-Content-Type-Options', 'nosniff');
         response.headers.set('X-Frame-Options', 'DENY');
-        
+
         return response;
     } catch (error) {
         console.error('Forgot password error:', error);

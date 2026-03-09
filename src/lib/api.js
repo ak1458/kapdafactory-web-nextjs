@@ -1,11 +1,10 @@
 'use client';
 
 import axios from 'axios';
-import { getCsrfToken } from './csrf-client';
 
 const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
-    timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 15000), // Reduced from 20s
+    timeout: Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || 15000),
     timeoutErrorMessage: 'Request timed out. Please try again.',
     headers: {
         'Content-Type': 'application/json',
@@ -14,21 +13,12 @@ const api = axios.create({
     withCredentials: true,
 });
 
-// Request interceptor with CSRF protection
+// Request interceptor for Auth token
 api.interceptors.request.use((config) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Add CSRF token for mutating requests
-    if (config.method && ['post', 'put', 'delete', 'patch'].includes(config.method.toLowerCase())) {
-        const csrfToken = getCsrfToken();
-        if (csrfToken) {
-            config.headers['X-CSRF-Token'] = csrfToken;
-        }
-    }
-
     return config;
 });
 
@@ -55,14 +45,6 @@ api.interceptors.response.use(
         if (error.response?.status === 429) {
             const retryAfter = error.response.headers['retry-after'] || 60;
             error.message = `Too many requests. Please try again in ${retryAfter} seconds.`;
-        }
-
-        // Handle 403 - CSRF Error
-        if (error.response?.status === 403 && error.response.data?.message?.includes('CSRF')) {
-            // Refresh the page to get new CSRF token
-            if (typeof window !== 'undefined') {
-                window.location.reload();
-            }
         }
 
         return Promise.reject(error);

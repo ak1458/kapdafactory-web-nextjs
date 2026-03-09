@@ -1,18 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/server/prisma';
-import { createRateLimit, createRateLimitResponse } from '@/src/lib/rate-limit';
-import { csrfProtection } from '@/src/lib/csrf';
-
 const DEFAULT_SETUP_EMAIL = 'admin@admin.com';
 const DEFAULT_SETUP_PASSWORD = 'admin123';
-
-// Rate limit: 10 attempts per hour per IP
-const setupAdminRateLimit = createRateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 10,
-    keyPrefix: 'setup-admin',
-});
 
 function getProvidedKey(request: NextRequest) {
     const headerKey = request.headers.get('x-setup-admin-key');
@@ -25,17 +15,6 @@ function getProvidedKey(request: NextRequest) {
 }
 
 async function handleSetup(request: NextRequest) {
-    // Check rate limit
-    const rateLimitResult = await setupAdminRateLimit(request);
-    if (!rateLimitResult.success) {
-        return createRateLimitResponse(rateLimitResult.resetTime);
-    }
-
-    // Check CSRF token
-    const csrfResult = await csrfProtection(request);
-    if (!csrfResult.valid) {
-        return csrfResult.response!;
-    }
 
     const configuredKey = String(process.env.KF_SETUP_ADMIN_KEY || '').trim();
     const allowInProd = String(process.env.KF_ALLOW_SETUP_ADMIN_IN_PROD || '').trim() === 'true';

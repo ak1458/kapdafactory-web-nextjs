@@ -1,28 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/server/prisma';
-import { createRateLimit, createRateLimitResponse } from '@/src/lib/rate-limit';
-import { csrfProtection } from '@/src/lib/csrf';
-
-// Rate limit: 5 attempts per 15 minutes per IP
-const resetPasswordRateLimit = createRateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-    keyPrefix: 'reset-password',
-});
 
 export async function POST(request: NextRequest) {
-    // Check rate limit
-    const rateLimitResult = await resetPasswordRateLimit(request);
-    if (!rateLimitResult.success) {
-        return createRateLimitResponse(rateLimitResult.resetTime);
-    }
 
-    // Check CSRF token (if enabled)
-    const csrfResult = await csrfProtection(request);
-    if (!csrfResult.valid) {
-        return csrfResult.response!;
-    }
 
     const body = await request.json().catch(() => null);
     const token = body?.token;

@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { generateCsrfToken, setCsrfCookie } from './lib/csrf';
 import { jwtVerify } from 'jose';
-
-// Simple in-memory store for IP-based rate limiting
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX = 2000; // 2000 requests per minute (increased for testing)
 
 // Routes that require authentication
 const PROTECTED_ROUTES = ['/dashboard', '/orders', '/collections'];
@@ -16,23 +10,6 @@ const AUTH_ROUTES = ['/login', '/forgot-password', '/reset-password'];
 const tokenSecret = new TextEncoder().encode(
     process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'kapdafactory-dev-secret-change-me'
 );
-
-function checkRateLimit(ip: string): boolean {
-    const now = Date.now();
-    const entry = rateLimitMap.get(ip);
-
-    if (!entry || now > entry.resetTime) {
-        rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-        return true;
-    }
-
-    if (entry.count >= RATE_LIMIT_MAX) {
-        return false;
-    }
-
-    entry.count++;
-    return true;
-}
 
 async function isAuthenticated(request: NextRequest): Promise<boolean> {
     const token = request.cookies.get('kf_token')?.value;
@@ -55,8 +32,9 @@ function isAuthRoute(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-    // Skip middleware for static assets, images, and API routes
     const pathname = request.nextUrl.pathname;
+
+    // Skip middleware for static assets, images, and API routes
     if (
         pathname.startsWith('/_next/') ||
         pathname.startsWith('/api/') ||
@@ -65,26 +43,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Get client IP
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-        request.headers.get('x-real-ip') ||
-        'unknown';
-
-    // Check global rate limit
-    if (!checkRateLimit(ip)) {
-        return new NextResponse(
-            JSON.stringify({ message: 'Too many requests. Please try again later.' }),
-            {
-                status: 429,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Retry-After': '60',
-                },
-            }
-        );
-    }
-
-    // --- Auth-aware route protection (single source of truth) ---
+    // Auth-aware route protection
     const authed = await isAuthenticated(request);
 
     // Protected routes: redirect to /login if not authenticated
@@ -111,14 +70,7 @@ export async function middleware(request: NextRequest) {
     // Get response
     const response = NextResponse.next();
 
-    // Set CSRF token cookie if not present
-    const existingCsrf = request.cookies.get('csrf_token')?.value;
-    if (!existingCsrf) {
-        const csrfToken = await generateCsrfToken();
-        setCsrfCookie(response, csrfToken);
-    }
-
-    // Add security headers
+    // Add security headers (standard)
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');

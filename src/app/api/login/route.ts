@@ -3,33 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAccessToken } from '@/src/server/auth';
 import { prisma } from '@/src/server/prisma';
 import { serializeUser } from '@/src/server/serializers';
-import { createRateLimit, createRateLimitResponse } from '@/src/lib/rate-limit';
-import { csrfProtection } from '@/src/lib/csrf';
-
-// Rate limit: 5 attempts per 15 minutes per IP
-const loginRateLimit = createRateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-    keyPrefix: 'login',
-});
 
 export async function POST(request: NextRequest) {
     const startTime = Date.now();
 
     try {
-        // Check rate limit
-        const rateLimitResult = await loginRateLimit(request);
-        if (!rateLimitResult.success) {
-            return createRateLimitResponse(rateLimitResult.resetTime);
-        }
-
-        // Check CSRF token (if enabled)
-        const csrfResult = await csrfProtection(request);
-        if (!csrfResult.valid) {
-            return csrfResult.response!;
-        }
-
-        // Parse body with timeout handling
+        // Parse body
         const body = await request.json().catch(() => null);
         if (!body) {
             return NextResponse.json({ message: 'Invalid request body' }, { status: 400 });
@@ -57,7 +36,7 @@ export async function POST(request: NextRequest) {
                 emailVerifiedAt: new Date(),
             } as any;
         } else {
-            // Find user - optimized query
+            // Find user
             user = await prisma.user.findUnique({
                 where: { email },
                 select: {

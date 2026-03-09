@@ -7,7 +7,6 @@ import { getSerializedOrderDetail, invalidateOrderCache } from '@/src/server/ord
 import { prisma } from '@/src/server/prisma';
 import { getRouteParams, getSingleParam } from '@/src/server/route-params';
 import { parsePositiveInt } from '@/src/server/validators';
-import { csrfProtection } from '@/src/lib/csrf';
 
 // GET /api/orders/[id] - Get order details
 export async function GET(request: NextRequest, context: any) {
@@ -25,7 +24,7 @@ export async function GET(request: NextRequest, context: any) {
 
         const mode = request.nextUrl.searchParams.get('lite') === '1' ? 'lite' : 'full';
         const order = await getSerializedOrderDetail(id, { mode });
-        
+
         if (!order) {
             return NextResponse.json({ message: 'Order not found.' }, { status: 404 });
         }
@@ -43,12 +42,6 @@ export async function PUT(request: NextRequest, context: any) {
         const authUser = await getAuthUser(request);
         if (!authUser) {
             return NextResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
-        }
-
-        // CSRF check (if enabled)
-        const csrfResult = await csrfProtection(request);
-        if (!csrfResult.valid) {
-            return csrfResult.response!;
         }
 
         const params = await getRouteParams(context);
@@ -155,21 +148,15 @@ export async function DELETE(request: NextRequest, context: any) {
             return NextResponse.json({ message: 'Unauthenticated.' }, { status: 401 });
         }
 
-        // CSRF check (if enabled)
-        const csrfResult = await csrfProtection(request);
-        if (!csrfResult.valid) {
-            return csrfResult.response!;
-        }
-
         const params = await getRouteParams(context);
         const id = parsePositiveInt(getSingleParam(params.id));
         if (!id) {
             return NextResponse.json({ message: 'Invalid order id.' }, { status: 400 });
         }
 
-        const images = await prisma.orderImage.findMany({ 
-            where: { orderId: id }, 
-            select: { filename: true } 
+        const images = await prisma.orderImage.findMany({
+            where: { orderId: id },
+            select: { filename: true }
         });
 
         await prisma.order.delete({ where: { id } });

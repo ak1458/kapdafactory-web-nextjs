@@ -8,19 +8,11 @@ import { getSerializedOrderDetail, invalidateOrderCache } from '@/src/server/ord
 import { prisma } from '@/src/server/prisma';
 import { serializeImage } from '@/src/server/serializers';
 import { parseOrderStatus, parsePositiveInt } from '@/src/server/validators';
-import { createRateLimit, createRateLimitResponse } from '@/src/lib/rate-limit';
-import { csrfProtection } from '@/src/lib/csrf';
 
 const MAX_IMAGES_PER_ORDER = 8;
 const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
 const ENABLE_ORDER_API_PERF_LOG = process.env.KF_API_PERF_LOG === '1';
 
-// Rate limit: 100 requests per minute per user
-const ordersRateLimit = createRateLimit({
-    windowMs: 60 * 1000,
-    max: 100,
-    keyPrefix: 'orders-api',
-});
 
 type PerfMark = {
     step: string;
@@ -146,12 +138,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
     const perf = createPerfTracker();
-
-    // Check rate limit
-    const rateLimitResult = await ordersRateLimit(request);
-    if (!rateLimitResult.success) {
-        return createRateLimitResponse(rateLimitResult.resetTime);
-    }
 
     const authUser = await getAuthUser(request);
     perf.mark('auth');
@@ -391,17 +377,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    // Check rate limit
-    const rateLimitResult = await ordersRateLimit(request);
-    if (!rateLimitResult.success) {
-        return createRateLimitResponse(rateLimitResult.resetTime);
-    }
-
-    // Check CSRF token
-    const csrfResult = await csrfProtection(request);
-    if (!csrfResult.valid) {
-        return csrfResult.response!;
-    }
+    // Check auth
 
     const authUser = await getAuthUser(request);
     if (!authUser) {
