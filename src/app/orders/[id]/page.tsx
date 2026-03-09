@@ -1,15 +1,10 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import ProtectedLayout from '@/src/components/ProtectedLayout';
 import OrderDetail from '@/src/ui-pages/OrderDetail';
 import { getSerializedOrderDetail } from '@/src/server/order-detail';
-import { getCurrentUser } from '@/src/server/auth';
 
 export default async function OrderDetailPage(props: { params: Promise<{ id: string }> }) {
-    const user = await getCurrentUser();
-    if (!user) {
-        redirect('/login');
-    }
-
+    // Auth is handled by middleware — no need for getCurrentUser() redirect here
     const params = await props.params;
     const orderId = Number(params.id);
 

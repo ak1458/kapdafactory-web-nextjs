@@ -1,31 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 
 export default function ProtectedRoute({ children }) {
-    const { token, loading } = useAuth();
-    const router = useRouter();
-    const [storedToken, setStoredToken] = useState(null);
+    const { loading, initialized } = useAuth();
 
-    useEffect(() => {
-        try {
-            setStoredToken(localStorage.getItem('token'));
-        } catch {
-            setStoredToken(null);
-        }
-    }, [token]);
-
-    const effectiveToken = token || storedToken;
-
-    useEffect(() => {
-        if (!loading && !effectiveToken) {
-            router.replace('/login');
-        }
-    }, [loading, effectiveToken, router]);
-
-    if (loading || !effectiveToken) {
+    // Show loading spinner only while auth is still initializing
+    if (!initialized || loading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-[#ECE5DD]">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
@@ -33,5 +14,9 @@ export default function ProtectedRoute({ children }) {
         );
     }
 
+    // After initialization, always render children.
+    // The middleware already verified the kf_token cookie for protected routes.
+    // If the user is unauthenticated, middleware will have redirected to /login
+    // before this component even mounts.
     return children;
 }

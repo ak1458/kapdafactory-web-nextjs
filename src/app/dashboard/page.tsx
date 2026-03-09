@@ -1,15 +1,9 @@
-import { redirect } from 'next/navigation';
 import ProtectedLayout from '@/src/components/ProtectedLayout';
 import OrderList from '@/src/ui-pages/OrderList';
 import { getCachedOrders } from '@/src/server/orders';
-import { getCurrentUser } from '@/src/server/auth';
 
 export default async function DashboardPage(props: { searchParams: Promise<any> }) {
-    const user = await getCurrentUser();
-    if (!user) {
-        redirect('/login');
-    }
-
+    // Auth is handled by middleware — no need for getCurrentUser() redirect here
     const searchParams = await props.searchParams;
     const data = await getCachedOrders(searchParams);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -13,12 +13,8 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
-    // Redirect if already logged in
-    useEffect(() => {
-        if (user && !authLoading) {
-            router.replace('/dashboard');
-        }
-    }, [user, authLoading, router]);
+    // NOTE: No useEffect redirect here — middleware handles redirecting
+    // authenticated users away from /login. This prevents redirect loops.
 
     const validateForm = useCallback(() => {
         const newErrors = {};
@@ -53,7 +49,9 @@ export default function Login() {
 
             if (result.success) {
                 toast.success('Login successful!');
-                router.replace('/dashboard');
+                // Use window.location to force a full navigation so middleware
+                // can verify the new cookie and serve the protected page.
+                window.location.replace('/dashboard');
             } else {
                 toast.error(result.message || 'Login failed');
                 setErrors({ form: result.message || 'Invalid credentials' });
@@ -65,7 +63,7 @@ export default function Login() {
         } finally {
             setIsLoading(false);
         }
-    }, [email, password, login, router, validateForm]);
+    }, [email, password, login, validateForm]);
 
     const handleEmailChange = useCallback((e) => {
         setEmail(e.target.value);
@@ -85,6 +83,19 @@ export default function Login() {
         return (
             <div className="min-h-screen bg-[#ECE5DD] flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#075E54]"></div>
+            </div>
+        );
+    }
+
+    // If user is already authenticated (e.g. race between middleware and client),
+    // show a brief redirecting state instead of the login form.
+    if (user) {
+        return (
+            <div className="min-h-screen bg-[#ECE5DD] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#075E54] mx-auto mb-4"></div>
+                    <p className="text-gray-600">Redirecting...</p>
+                </div>
             </div>
         );
     }

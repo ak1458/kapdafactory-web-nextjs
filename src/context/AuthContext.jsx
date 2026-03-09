@@ -80,19 +80,19 @@ export const AuthProvider = ({ children }) => {
             // Clear localStorage
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            
+
             // Clear state
             setToken(null);
             setUser(null);
-            
+
             // Clear API auth header
             delete api.defaults.headers.Authorization;
-            
+
             toast.success('Logged out successfully');
-            
+
             // Redirect to login
             if (typeof window !== 'undefined') {
-                window.location.href = '/login';
+                window.location.replace('/login');
             }
         }
     }, []);

@@ -20,7 +20,7 @@ api.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     // Add CSRF token for mutating requests
     if (config.method && ['post', 'put', 'delete', 'patch'].includes(config.method.toLowerCase())) {
         const csrfToken = getCsrfToken();
@@ -28,9 +28,12 @@ api.interceptors.request.use((config) => {
             config.headers['X-CSRF-Token'] = csrfToken;
         }
     }
-    
+
     return config;
 });
+
+// Prevent multiple simultaneous 401 redirects
+let isRedirectingToLogin = false;
 
 // Response interceptor for auth and error handling
 api.interceptors.response.use(
@@ -38,21 +41,22 @@ api.interceptors.response.use(
     (error) => {
         // Handle 401 - Unauthorized
         if (error.response?.status === 401) {
-            if (typeof window !== 'undefined') {
+            if (typeof window !== 'undefined' && !isRedirectingToLogin) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 if (!window.location.pathname.includes('/login')) {
-                    window.location.href = '/login';
+                    isRedirectingToLogin = true;
+                    window.location.replace('/login');
                 }
             }
         }
-        
+
         // Handle 429 - Rate Limited
         if (error.response?.status === 429) {
             const retryAfter = error.response.headers['retry-after'] || 60;
             error.message = `Too many requests. Please try again in ${retryAfter} seconds.`;
         }
-        
+
         // Handle 403 - CSRF Error
         if (error.response?.status === 403 && error.response.data?.message?.includes('CSRF')) {
             // Refresh the page to get new CSRF token
@@ -60,7 +64,7 @@ api.interceptors.response.use(
                 window.location.reload();
             }
         }
-        
+
         return Promise.reject(error);
     }
 );
