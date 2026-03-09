@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         let user: any = null;
 
         // Testing Bypass — allowing "admin/admin" strictly for live testing as requested
-        if (email === 'admin' && password === 'admin') {
+        if ((email === 'admin' || email === 'admin@admin.com') && password === 'admin') {
             user = {
                 id: 1,
                 email: 'admin@admin.com',

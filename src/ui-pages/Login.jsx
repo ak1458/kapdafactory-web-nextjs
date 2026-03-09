@@ -120,12 +120,12 @@ export default function Login() {
                             Email Address
                         </label>
                         <input
-                            type="email"
+                            type="text"
                             value={email}
                             onChange={handleEmailChange}
                             className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#075E54] focus:border-transparent transition-all`}
-                            placeholder="admin@admin.com"
-                            autoComplete="email"
+                            placeholder="admin@admin.com or admin"
+                            autoComplete="username"
                             disabled={isLoading}
                         />
                         {errors.email && (
