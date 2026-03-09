@@ -6,7 +6,7 @@ export const mockUsers = [
         email: 'admin@admin.com',
         name: 'Admin User',
         role: 'admin',
-        password: '$2a$10$N9qo8uLOickgx2ZMRZoMy.MqrqhmM6JGKpS4G3R1G2JH8YpfB0Bqy', // hashed 'admin123'
+        password: '$2b$10$okrdzkj8pcELrOKFn1ece.BsmK2PYwGcfX5O6X6SDQlzcl20PJQ4y', // hashed 'admin123'
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
         emailVerifiedAt: new Date('2024-01-01'),

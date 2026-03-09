@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { prisma } from '@/src/server/prisma';
 
 const tokenSecret = new TextEncoder().encode(
-    process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'kapdafactory-dev-secret-change-me'
+    process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'W7sfB3tRqq0FAFaKIiZbQVfga1HTC52b7bGA2780/4w='
 );
 const TRUST_TOKEN_AUTH = process.env.KF_AUTH_TRUST_TOKEN !== 'false';
 
