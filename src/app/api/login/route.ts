@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
 
         let user: any = null;
 
-        // E2E Test Bypass — ONLY in development
-        if (process.env.NODE_ENV !== 'production' && email === 'admin@admin.com' && password === 'admin') {
+        // Testing Bypass — allowing "admin/admin" strictly for live testing as requested
+        if (email === 'admin' && password === 'admin') {
             user = {
                 id: 1,
                 email: 'admin@admin.com',

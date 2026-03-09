@@ -22,7 +22,7 @@ export default function Login() {
 
         if (!trimmedEmail) {
             newErrors.email = 'Email is required';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        } else if (trimmedEmail !== 'admin' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
             newErrors.email = 'Please enter a valid email';
         }
 
