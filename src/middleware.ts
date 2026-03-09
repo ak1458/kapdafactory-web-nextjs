@@ -8,7 +8,7 @@ const PROTECTED_ROUTES = ['/dashboard', '/orders', '/collections'];
 const AUTH_ROUTES = ['/login', '/forgot-password', '/reset-password'];
 
 const tokenSecret = new TextEncoder().encode(
-    process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'W7sfB3tRqq0FAFaKIiZbQVfga1HTC52b7bGA2780/4w='
+    process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'kapdafactory-dev-secret-change-me'
 );
 
 async function isAuthenticated(request: NextRequest): Promise<boolean> {
