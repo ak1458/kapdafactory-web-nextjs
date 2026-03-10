@@ -97,6 +97,14 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
+    const clearAuth = useCallback(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+        delete api.defaults.headers.Authorization;
+    }, []);
+
     // Don't render children until auth is initialized
     if (!initialized) {
         return (
@@ -107,7 +115,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, loading, initialized }}>
+        <AuthContext.Provider value={{ user, token, login, logout, clearAuth, loading, initialized }}>
             {children}
         </AuthContext.Provider>
     );

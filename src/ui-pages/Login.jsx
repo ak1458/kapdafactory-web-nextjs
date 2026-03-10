@@ -1,17 +1,25 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/src/context/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Login() {
     const router = useRouter();
-    const { login, user, loading: authLoading } = useAuth();
+    const { login, user, clearAuth, loading: authLoading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const [isRedirecting, setIsRedirecting] = useState(false);
+
+    useEffect(() => {
+        // If user is present but they land on this page, it implies a desync, so clear the stale state
+        if (user && !isRedirecting && !authLoading && clearAuth) {
+            clearAuth();
+        }
+    }, [user, isRedirecting, authLoading, clearAuth]);
 
     // NOTE: No useEffect redirect here — middleware handles redirecting
     // authenticated users away from /login. This prevents redirect loops.
@@ -49,6 +57,7 @@ export default function Login() {
 
             if (result.success) {
                 toast.success('Login successful!');
+                setIsRedirecting(true);
                 // Use window.location to force a full navigation so middleware
                 // can verify the new cookie and serve the protected page.
                 window.location.replace('/dashboard');
@@ -87,9 +96,9 @@ export default function Login() {
         );
     }
 
-    // If user is already authenticated (e.g. race between middleware and client),
-    // show a brief redirecting state instead of the login form.
-    if (user) {
+    // Jika user logged in recently successfully, show spinner while navigating.
+    // If not, clearAuth in useEffect handles the stale state and we render form normally.
+    if (user && isRedirecting) {
         return (
             <div className="min-h-screen bg-[#ECE5DD] flex items-center justify-center">
                 <div className="text-center">
