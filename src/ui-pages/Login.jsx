@@ -29,9 +29,7 @@ export default function Login() {
         const trimmedEmail = email.trim().toLowerCase();
 
         if (!trimmedEmail) {
-            newErrors.email = 'Email is required';
-        } else if (trimmedEmail !== 'admin' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-            newErrors.email = 'Please enter a valid email';
+            newErrors.email = 'Login ID is required';
         }
 
         if (!password) {
@@ -126,14 +124,14 @@ export default function Login() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Email Address
+                            Login ID
                         </label>
                         <input
                             type="text"
                             value={email}
                             onChange={handleEmailChange}
                             className={`w-full px-4 py-3 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:ring-2 focus:ring-[#075E54] focus:border-transparent transition-all`}
-                            placeholder="admin@admin.com or admin"
+                            placeholder="admin"
                             autoComplete="username"
                             disabled={isLoading}
                         />

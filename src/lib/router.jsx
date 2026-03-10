@@ -31,6 +31,7 @@ export function useNavigate() {
 
         if (typeof to === 'string') {
             router.push(to);
+            router.refresh();
         }
     };
 }

@@ -505,10 +505,17 @@ export async function POST(request: NextRequest) {
         });
 
         // Fetch serialized order details (consistent with all other endpoints)
-        invalidateOrderCache(newOrder.id);
         const createdOrder = await getSerializedOrderDetail(newOrder.id);
         if (!createdOrder) {
-            return NextResponse.json({ message: 'Order created but failed to fetch details.' }, { status: 201 });
+            // Fallback for temporary read-after-write database lag
+            return NextResponse.json({
+                id: newOrder.id,
+                token: newOrder.token,
+                bill_number: newOrder.billNumber,
+                status: newOrder.status,
+                total_amount: Number(newOrder.totalAmount),
+                message: 'Order created'
+            }, { status: 201 });
         }
 
         const response = NextResponse.json(createdOrder, { status: 201 });
