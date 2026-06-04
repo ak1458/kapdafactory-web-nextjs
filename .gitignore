@@ -45,3 +45,9 @@ Thumbs.db
 
 # Archives (documentation, old files)
 /_archive
+
+# Security: never commit env secrets
+.env
+.env.*
+!.env.example
+.env.vercel
