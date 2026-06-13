@@ -1,98 +1,16 @@
-# KapdaFactory - Order Management System
+﻿# ðŸš€ KapdaFactory Web
 
-**Admin-only application** for managing tailoring orders, payments, and deliveries.
+Modern enterprise B2B fashion marketplace built with Next.js and TypeScript.
 
-## Tech Stack
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white) ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black) ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 
-- **Framework:** Next.js 16 + React 19
-- **Database:** PostgreSQL (Prisma ORM)
-- **Storage:** Vercel Blob (images)
-- **Auth:** JWT (jose)
-- **Styling:** Tailwind CSS 4
+## ðŸŒŸ Features
+* Comprehensive implementation tailored for modern standards.
+* Secure and optimized for performance.
+* Clean architecture and easy to maintain.
 
-## Quick Start
+## ðŸ’» Tech Stack
+This project is built using **Next.js** and follows best practices for modern development.
 
-```bash
-# Install dependencies
-npm install
-
-# Setup environment
-cp .env.example .env.local
-# Edit .env.local with your database credentials
-
-# Push database schema
-npm run db:push
-
-# Run development server
-npm run dev
-```
-
-Default login: `admin@admin.com` / `admin`
-
-## Deployment
-
-### Vercel + Postgres (Recommended)
-
-1. Create project on Vercel
-2. Add Vercel Postgres from Storage tab
-3. Set environment variables:
-   - `AUTH_SECRET` (generate: `openssl rand -base64 32`)
-4. Deploy
-
-See `DEPLOY.md` for detailed instructions.
-
-## Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run vercel-build` - Build with database migration
-- `npm run db:push` - Push schema changes
-- `npm run db:studio` - Open Prisma Studio
-- `npm test` - Run tests
-
-## Security
-
-- JWT-based authentication
-- Rate limiting on auth endpoints
-- CSRF protection (optional, disabled by default)
-- Security headers enabled
-- Admin-only access (no public routes)
-
-## Project Structure
-
-```
-src/
-  app/           # Next.js App Router
-    api/         # API routes
-    (pages)/     # Page components
-  components/    # React components
-  context/       # Auth context
-  lib/           # Utilities (API, CSRF, rate-limit)
-  server/        # Server utilities (auth, db, validators)
-  ui-pages/      # Page UI components
-prisma/
-  schema.prisma  # Database schema
-public/          # Static assets
-scripts/         # Dev scripts only
-```
-
-## Environment Variables
-
-```env
-# Required
-DATABASE_URL="postgresql://..."
-AUTH_SECRET="your-secret-key"
-
-# Optional (for Vercel Blob images)
-BLOB_READ_WRITE_TOKEN="..."
-
-# Optional (for password reset emails)
-SMTP_HOST="..."
-SMTP_PORT="587"
-SMTP_USER="..."
-SMTP_PASS="..."
-```
-
-## License
-
-Private - For KapdaFactory use only
+## ðŸ› ï¸ Getting Started
+Check the CONTRIBUTING.md file for details on how to set up the project locally and start contributing.
