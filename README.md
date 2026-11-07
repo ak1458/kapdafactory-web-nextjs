@@ -128,7 +128,7 @@ Manifest versions are application/workspace metadata, not a certification of rel
 | --- | --- |
 | [package.json](<package.json>) | `1.0.0` |
 
-The repository has source tags (`v2.0.0`, `v2.0-deployed`), but no published GitHub Release was recorded in this snapshot. [Browse tags](https://github.com/ak1458/kapdafactory-web-nextjs/tags). Tags and release notes are separate objects.
+The repository has source tags (`v2.0.0`, `v2.0-deployed`), but no published GitHub Release was recorded in this snapshot. [Browse tags](https://github.com/ak1458/kapdafactory-web-nextjs/tags). Tags and release notes are separate objects. The `v2.0.0` tag points to an older Laravel tree rather than this Next.js application, and its tree includes a tracked `.env` file. It is not promoted here as a current installable release; review that historical configuration separately before distribution.
 
 GitHub Packages is a separate registry. This README does not imply that a registry package exists; use the installation path documented here rather than an invented package-install command.
 
